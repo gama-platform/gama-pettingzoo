@@ -1,0 +1,94 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gama-pettingzoo"
+version = "0.1.0"
+authors = [
+  { name="Baptiste Lesquoy", email="baptiste.lesquoy@ird.fr" },
+  { name="Meritxell Vinyals", email="meritxell.vinyals@inrae.fr" },
+]
+description = "A PettingZoo environment for multi-agent reinforcement learning with GAMA agent-based simulations"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["multi-agent", "reinforcement-learning", "pettingzoo", "gama", "agent-based-modeling", "simulation", "marl"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pettingzoo>=1.22.0",
+    "gama_gymnasium>=0.1.0",
+    "numpy>=1.21.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+]
+
+examples = [
+    "Pillow>=9.0.0",
+    "watchdog>=2.1.0",
+    "matplotlib>=3.3.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/gama-platform/gama-pettingzoo"
+"Repository" = "https://github.com/gama-platform/gama-pettingzoo"
+"Bug Tracker" = "https://github.com/gama-platform/gama-pettingzoo/issues"
+"Documentation" = "https://github.com/gama-platform/gama-pettingzoo#readme"
+"GAMA Platform" = "https://gama-platform.org/"
+
+[tool.hatch.build]
+include = [
+  "src/gama_pettingzoo/*.py",
+]
+exclude = [
+  "**/__pycache__",
+  "**/*.pyc",
+  "**/tests",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gama_pettingzoo"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  __pycache__
+  | \.git
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "--cov=gama_pettingzoo --cov-report=html --cov-report=xml"
