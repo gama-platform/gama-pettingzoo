@@ -1,6 +1,6 @@
 """
-Entraînement de 2 agents dans l'environnement Prison Escape de GAMA
-Utilise l'algorithme PPO pour entraîner les agents prisoner et guard
+Training 2 agents in GAMA's Prison Escape environment
+Uses PPO algorithm to train prisoner and guard agents
 """
 
 import asyncio
@@ -12,13 +12,13 @@ import pickle
 
 from gama_pettingzoo.gama_parallel_env import GamaParallelEnv
 
-# Imports conditionnels pour éviter les erreurs si les packages ne sont pas installés
+# Conditional imports to avoid errors if packages are not installed
 try:
     import matplotlib.pyplot as plt
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
-    print("Matplotlib non disponible. Graphiques désactivés.")
+    print("Matplotlib not available. Graphics disabled.")
 
 try:
     from stable_baselines3 import PPO
@@ -26,7 +26,7 @@ try:
     SB3_AVAILABLE = True
 except ImportError:
     SB3_AVAILABLE = False
-    print("Stable-Baselines3 non disponible. Utilisation d'un agent de remplacement.")
+    print("Stable-Baselines3 not available. Using fallback agent.")
 
 try:
     from pettingzoo import ParallelEnv
@@ -35,7 +35,7 @@ except ImportError:
     PETTINGZOO_AVAILABLE = False
 
 class PrisonEscapeWrapper:
-    """Wrapper pour adapter l'environnement GAMA PettingZoo à Stable-Baselines3"""
+    """Wrapper to adapt GAMA PettingZoo environment to Stable-Baselines3"""
     
     def __init__(self, gaml_experiment_path, gaml_experiment_name="main", 
                  gama_ip="localhost", gama_port=1001):
@@ -47,7 +47,7 @@ class PrisonEscapeWrapper:
         self.agents = ["prisoner", "guard"]
         
     async def _create_env(self):
-        """Crée l'environnement GAMA de manière asynchrone"""
+        """Creates GAMA environment asynchronously"""
         if self.env is None:
             self.env = GamaParallelEnv(
                 gaml_experiment_path=self.gaml_experiment_path,
@@ -58,23 +58,23 @@ class PrisonEscapeWrapper:
         return self.env
     
     async def reset(self):
-        """Reset l'environnement"""
+        """Reset the environment"""
         env = await self._create_env()
         obs, infos = env.reset()
         return obs, infos
     
     async def step(self, actions):
-        """Exécute une étape dans l'environnement"""
+        """Execute a step in the environment"""
         env = await self._create_env()
         return env.step(actions)
     
     async def close(self):
-        """Ferme l'environnement"""
+        """Close the environment"""
         if self.env:
             self.env.close()
 
 class TrainingMetrics:
-    """Classe pour suivre les métriques d'entraînement"""
+    """Class to track training metrics"""
     
     def __init__(self):
         self.episode_rewards = {"prisoner": deque(maxlen=100), "guard": deque(maxlen=100)}
@@ -83,12 +83,12 @@ class TrainingMetrics:
         self.total_episodes = 0
         
     def add_episode(self, rewards, length, winner):
-        """Ajoute les métriques d'un épisode"""
+        """Add metrics from an episode"""
         self.episode_rewards["prisoner"].append(rewards.get("prisoner", 0))
         self.episode_rewards["guard"].append(rewards.get("guard", 0))
         self.episode_lengths.append(length)
         
-        # Mise à jour des taux de victoire
+        # Update win rates
         prisoner_win = 1 if winner == "prisoner" else 0
         guard_win = 1 if winner == "guard" else 0
         
@@ -97,7 +97,7 @@ class TrainingMetrics:
         self.total_episodes += 1
     
     def get_current_stats(self):
-        """Retourne les statistiques actuelles"""
+        """Return current statistics"""
         stats = {
             "episode": self.total_episodes,
             "avg_reward_prisoner": np.mean(self.episode_rewards["prisoner"]) if self.episode_rewards["prisoner"] else 0,
@@ -109,7 +109,7 @@ class TrainingMetrics:
         return stats
 
 class PrisonEscapeTrainer:
-    """Classe principale pour l'entraînement des agents"""
+    """Main class for agent training"""
     
     def __init__(self, experiment_path, save_dir="./models"):
         self.experiment_path = experiment_path
@@ -355,7 +355,7 @@ class PrisonEscapeTrainer:
         print(f"Graphiques sauvegardés: {plot_path}")
 
 async def main():
-    """Fonction principale pour lancer l'entraînement"""
+    """Main function to launch training"""
     
     # Configuration de l'entraînement
     exp_path = str(Path(__file__).parents[0] / "controler.gaml")

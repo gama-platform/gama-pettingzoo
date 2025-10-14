@@ -1,2 +1,32 @@
-Pillow>=9.0.0
-watchdog>=2.1.0
+# Dependencies for Prison Escape agent training
+
+# Reinforcement Learning
+stable-baselines3>=2.0.0
+torch>=1.13.0
+gymnasium>=0.29.0
+
+# Visualization and Analysis  
+matplotlib>=3.5.0
+seaborn>=0.11.0
+plotly>=5.0.0
+
+# Numerical Computing and Data
+numpy>=1.21.0
+pandas>=1.5.0
+scipy>=1.9.0
+
+# Configuration and Logging
+pyyaml>=6.0
+tensorboard>=2.10.0
+wandb>=0.13.0  # optional for advanced tracking
+
+# Utilities
+tqdm>=4.64.0
+click>=8.0.0
+
+# Testing (optional)
+pytest>=7.0.0
+pytest-asyncio>=0.20.0
+
+# GAMA environments (probably already installed)
+# gama-pettingzoo

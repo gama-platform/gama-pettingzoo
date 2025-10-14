@@ -16,13 +16,26 @@ global {
 	int PELLET <- 1;
 	int POWERPELLET <- 2;
 	int GHOST <- 3;
+	int BLINKY <- 4;
+	int PINKY <- 5;
+	int INKY <- 6;
+	int CLYDE <- 7;
 	
-	float dt <- 0.2;
+	int SCATTER <- 0;
+	int CHASE <- 1;
+	int FREIGHT <- 2;
+	int SPAWN <- 3;
+	
+	float dt <- 0.1;
 	
 	geometry shape <- rectangle(NCOLS, NROWS);
 	
 	NodeGroup nodes;
 	PelletGroup pellets;
+	
+	point homekey;
+	
+	int lives <- 5;
 	
 	init {
 		
@@ -30,18 +43,72 @@ global {
 		nodes <- first(NodeGroup);
 		ask nodes {
 			do setPortalPair({0, 17}, {27, 17});
+			world.homekey <- createHomeNodes(11.5, 14.0);
+			do connectHomeNodes(world.homekey, {12, 14}, LEFT);
+			do connectHomeNodes(world.homekey, {15, 14}, RIGHT);
 		}
 		create PelletGroup with: ["pelletfile"::"../../../includes/PacMan/maze1.txt"];
 		pellets <- first(PelletGroup);
 		
-		create PacMan;
-		create Ghost;
+		create PacMan {
+			do setStartNode(nodes.nodesLUT[{15, 26}]);
+			do setBetweenNodes(LEFT);
+		}
+		
+		
+		create GhostGroup {
+//			pacman <- PacMan[0];
+			node <- nodes.getStartTempNode();
+		}
+		
+		ask GhostGroup {
+			Node spawnNode <- nodes.nodesLUT[{2 + 11.5, 3 + 14}];
+			do setSpawnNode(spawnNode);
+		}
+		
+		ask Blinky { do setStartNode(nodes.nodesLUT[{2+11.5, 0+14}]); }
+		ask Pinky { do setStartNode(nodes.nodesLUT[{2+11.5, 3+14}]); }
+		ask Inky { do setStartNode(nodes.nodesLUT[{0+11.5, 3+14}]); }
+		ask Clyde { do setStartNode(nodes.nodesLUT[{4+11.5, 3+14}]); }
+	}
+	
+	reflex checkGhostEvents {
+		ask GhostGroup[0].ghosts {
+			if PacMan[0].collideGhost(self) {
+				if mode.current = FREIGHT {
+					pacman.visible <- false;
+					visible <- false;
+					
+					do startSpawn;
+				}
+				else if mode.current != SPAWN {
+					if pacman.alive {
+						lives <- lives - 1;
+						ask pacman { do died; }
+						ask GhostGroup { do hide; }
+						if lives <= 0 {
+							ask myself { do pause; }
+						}
+						else {
+							ask myself { do resetLevel; }
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	action resetLevel {
+		ask PacMan { do reset; }
+		ask GhostGroup { do reset; }
 	}
 }
 
 species Entity {
 	int name_id;
 	Node cur_node;
+	Node startNode;
+	Node spawnNode;
 	Node target;
 	point goal;
 	map<int, point> directions <- [NOOP::{0, 0}, UP::{0, -1}, RIGHT::{1, 0}, LEFT::{-1, 0}, DOWN::{0, 1}];
@@ -55,10 +122,6 @@ species Entity {
 	rgb color <- #white;
 	bool visible <- true;
 	bool disablePortal <- false;
-	
-	init {
-		
-	}
 	
 	reflex update {
 		location <- location + directions[direction] * speed * dt;
@@ -77,6 +140,20 @@ species Entity {
 			}
 			do setPosition();
 		}
+	}
+	
+	action setBetweenNodes(int direc) {
+		if cur_node.neighbors[direc] != nil {
+			target <- cur_node.neighbors[direc];
+			location <- (cur_node.location + target.location) / 2.0;
+		}
+	}
+	
+	action setStartNode(Node stNode) {
+		cur_node <- stNode;
+		startNode <- stNode;
+		target <- stNode;
+		do setPosition();
 	}
 	
 	action setPosition {
@@ -138,6 +215,17 @@ species Entity {
 		return false;
 	}
 	
+	action normalMode {
+		speed <- 1.0;
+	}
+	
+	action reset {
+		do setStartNode(startNode);
+		direction <- NOOP;
+		speed <- 1.0;
+		visible <- true;
+	}
+	
 	aspect default {
 		if visible {
 			draw circle(radius) color: color;
@@ -147,15 +235,12 @@ species Entity {
 
 species PacMan parent: Entity{
 	cell cur_cell;
+	bool alive <- true;
 	
 	init {
 		name_id <- PACMAN;
 		color <- #yellow;
-		
-		cur_node <- nodes.getStartTempNode();
-		do setPosition;
-		target <- cur_node;
-		
+		direction <- LEFT;
 	}
 	
 	reflex update {
@@ -187,6 +272,11 @@ species PacMan parent: Entity{
 		if pellet != nil {
 			pellets.numEaten <- pellets.numEaten + 1;
 			pellets.pellets >> pellet;
+			if pellet.name_id = POWERPELLET {
+				ask GhostGroup[0].ghosts {
+					do startFreight;
+				}
+			}
 		}
 	}
 	
@@ -194,32 +284,84 @@ species PacMan parent: Entity{
 	
 	Pellet eatPellets(list<Pellet> pelletList) {
 		loop pellet over: pelletList {
-			let d <- location - pellet.location;
-			let dsqr <- d.x^2 + d.y^2;
-			let rsqr <- (pellet.radius + radius)^2;
-			if dsqr <= rsqr {
+			if collideCheck(pellet, pellet.collideRadius) {
 				return pellet;
 			}
 		}
 		return nil;
 	}
+	
+	bool collideGhost(Ghost ghost) {
+		return collideCheck(ghost, ghost.radius);
+	}
+	
+	bool collideCheck(agent other, float collideRadius) {
+		let d <- location - other.location;
+		let dsqr <- d.x^2 + d.y^2;
+		let rsqr <- (radius + collideRadius)^2;
+		if dsqr <= rsqr {
+			return true;
+		}
+		return false;
+	}
+	
+	action reset {
+		invoke reset;
+		direction <- LEFT;
+		do setBetweenNodes(LEFT);
+		alive <- true;		
+	}
+	
+	action died {
+		alive <- false;
+		direction <- NOOP;
+	}
 }
 
 species Ghost parent: Entity{
 	int points;
-	
+	PacMan pacman;
+	ModeController mode;
+	Ghost blinky;
+	Node homeNode;
 	
 	init {
 		name_id <- GHOST;
 		points <- 200;
 		goal <- {0, 0};
 		
-		cur_node <- nodes.getStartTempNode();
-		do setPosition;
-		target <- cur_node;
+		create ModeController returns: modes {
+			entity <- myself;
+		}
+		mode <- first(modes);
+	}
+	
+	reflex preupdate {
+		ask mode {
+			do update;
+		}
+		if mode.current = SCATTER {
+			do scatter;
+		}
+		else if mode.current = CHASE {
+			do chase;
+		}
+	}
+	
+	action scatter {
+//		color <- #white;
+		goal <- {0, 0};
+	}
+	
+	action chase {
+//		color <- #red;
+		goal <- pacman.location;
 	}
 	
 	action directionMethod(list<int> possible_directions) {
+		if mode.current = FREIGHT {
+			return randomDirection(possible_directions);
+		}
 		return goalDirection(possible_directions);
 	}
 	
@@ -232,6 +374,274 @@ species Ghost parent: Entity{
 		}
 		int indx <- distances index_of(min(distances));
 		return possible_directions[indx];
+	}
+	
+	action startFreight {
+		ask mode {
+			do setFreightMode;
+		}
+		if mode.current = FREIGHT {
+			speed <- 0.5;
+		}
+	}
+	
+	action spawn {
+//		color <- #blue;
+		goal <- spawnNode.location;
+	}
+	
+	action setSpawnNode(Node node) {
+		spawnNode <- node;
+	}
+	
+	action startSpawn {
+		ask mode {
+			do setSpawnMode;
+		}
+		if mode.current = SPAWN {
+			speed <- 1.5;
+			do spawn;
+		}
+	}
+	
+	action reset {
+		invoke reset;
+		points <- 200;
+	}
+}
+
+species Blinky parent: Ghost{
+	init {
+		name_id <- BLINKY;
+		color <- #red;
+	}
+}
+
+species Pinky parent:Ghost {
+	init {
+		name_id <- PINKY;
+		color <- #pink;
+	}
+	
+	action scatter {
+		goal <- {NCOLS, 0};
+	}
+	
+	action chase {
+		goal <- pacman.location + pacman.directions[pacman.direction] * 4;
+	}
+}
+
+species Inky parent: Ghost {
+	init {
+		name_id <- INKY;
+		color <- #teal;
+	}
+	
+	action scatter {
+		goal <- {NCOLS, NROWS};
+	}
+	
+	action chase {
+		let vec1 <- pacman.location + pacman.directions[pacman.direction] * 2;
+		let vec2 <- (vec1 - blinky.location) * 2;
+		goal <- blinky.location + vec2;
+	}
+}
+
+species Clyde parent: Ghost {
+	init {
+		name_id <- CLYDE;
+		color <- #orange;
+	}
+	
+	action scatter {
+		goal <- {0, NROWS};
+	}
+	
+	action chase {
+		let d <- pacman.location - location;
+		let ds <- d.x^2 + d.y^2;
+		if ds <= 8^2 {
+			do scatter;
+		}
+		else {
+			goal <- pacman.location + pacman.directions[pacman.direction] * 4;
+		}
+	}
+}
+
+species GhostGroup {
+	Node node;
+	PacMan pacman;
+	Ghost blinky;
+	Ghost pinky;
+	Ghost inky;
+	Ghost clyde;
+	
+	list<Ghost> ghosts;
+	
+	init {
+		pacman <- PacMan[0];
+		create Blinky {
+			spawnNode <- myself.node;
+			self.pacman <- myself.pacman;
+		}
+		blinky <- Blinky[0];
+		
+		create Pinky {
+			spawnNode <- myself.node;
+			self.pacman <- myself.pacman;
+		}
+		pinky <- Pinky[0];
+		
+		create Inky {
+			spawnNode <- myself.node;
+			self.pacman <- myself.pacman;
+			self.blinky <- myself.blinky;
+		}
+		inky <- Inky[0];
+		
+		create Clyde {
+			spawnNode <- myself.node;
+			self.pacman <- myself.pacman;
+		}
+		clyde <- Clyde[0];
+		
+		ghosts <- [blinky, pinky, inky, clyde];
+	}
+	
+	action startFreight {
+		ask ghosts {
+			do startFreight;
+		}
+		do resetPoints;
+	}
+	
+	action setSpawnNode(Node sNode) {
+		ask ghosts {
+			do setSpawnNode(sNode);
+		}
+	}
+	
+	action updatePoints {
+		ask ghosts {
+			points <- points * 2;
+		}
+	}
+	
+	action resetPoints {
+		ask ghosts {
+			points <- 200;
+		}
+	}
+	
+	action reset {
+		ask Ghost {
+			do reset;
+		}
+	}
+	
+	action hide {
+		ask ghosts {
+			visible <- false;
+		}
+	}
+	
+	action show {
+		ask ghosts {
+			visible <- true;
+		}
+	}
+}
+
+species MainMode {
+	float timer <- 0.0;
+	int mode <- SCATTER;
+	int time <- 7;
+	
+	action update {
+		timer <- timer + dt;
+		
+		if timer >= time {
+			if mode = SCATTER {
+				do chase;
+			}
+			else if mode = CHASE {
+				do scatter;
+			}
+		}
+	}
+	
+	action chase {
+		mode <- CHASE;
+		time <- 20;
+		timer <- 0.0;
+	}
+	
+	action scatter {
+		mode <- SCATTER;
+		time <- 7;
+		timer <- 0.0;
+	}
+}
+
+species ModeController {
+	float timer <- 0.0;
+	int time;
+	MainMode mainmode;
+	int current;
+	Entity entity;
+	
+	init {
+		create MainMode returns: mainmodes;
+		mainmode <- first(mainmodes);
+		current <- mainmode.mode;
+	}
+	
+	action update {
+		ask mainmode {
+			do update;
+		}
+		if current = FREIGHT {
+			timer <- timer + dt;
+			if timer >= time {
+				time <- nil;
+				ask entity {
+					do normalMode;
+				}
+				current <- mainmode.mode;
+			}
+		}
+		else if current in [SCATTER, CHASE] {
+			current <- mainmode.mode;
+		}
+		
+		if current = SPAWN {
+			if entity.cur_node = entity.spawnNode {
+				ask entity {
+					do normalMode;
+				}
+				current <- mainmode.mode;
+			}
+		}
+	}
+	
+	action setSpawnMode {
+		if current = FREIGHT {
+			current <- SPAWN;
+		}
+	}
+	
+	action setFreightMode {
+		if current in [SCATTER, CHASE] {
+			timer <- 0.0;
+			time <- 7;
+			current <- FREIGHT;
+		}
+		else if current = FREIGHT {
+			timer <- 0.0;
+		}
 	}
 }
 
@@ -339,6 +749,7 @@ species NodeGroup {
 	map<point, Node> nodesLUT <- [];
 	list<string> nodeSymbols <- ['+', 'P', 'n'];
 	list<string> pathSymbols <- ['.', '-', '|', 'p'];
+	point homekey;
 	
 	init {
 		let data <- readMazeFile(level);
@@ -354,7 +765,7 @@ species NodeGroup {
 		return maze_mtx;
 	}
 	
-	action createNodeTable(matrix data, int xoffset<-0, int yoffset<-0) {
+	action createNodeTable(matrix data, float xoffset<-0, float yoffset<-0) {
 		loop row over: range(int(data.dimension.x) - 1) {
 			loop col over: range(int(data.dimension.y) - 1) {
 				if data[{row, col}] in nodeSymbols {
@@ -365,7 +776,7 @@ species NodeGroup {
 		}
 	}
 	
-	action connectHorizontally(matrix data, int xoffset<-0, int yoffset<-0) {
+	action connectHorizontally(matrix data, float xoffset<-0, float yoffset<-0) {
 		loop row over: range(int(data.dimension.x) - 1) {
 			point key <- nil;
 			loop col over: range(int(data.dimension.y) - 1) {
@@ -385,7 +796,7 @@ species NodeGroup {
 		}
 	}
 	
-	action connectVertically(matrix data, int xoffset<-0, int yoffset<-0) {
+	action connectVertically(matrix data, float xoffset<-0, float yoffset<-0) {
 		matrix dataT <- transpose(data);
 		loop col over: range(int(dataT.dimension.x) - 1) {
 			point key <- nil;
@@ -413,9 +824,39 @@ species NodeGroup {
 		}
 	}
 	
+	Node getNodeFromPixels(float xpixel, float ypixel) {
+		if {xpixel, ypixel} in nodesLUT.keys {
+			return nodesLUT[{xpixel, ypixel}];
+		}
+		return nil;
+	}
+	
+	Node getNodeFromTiles(float col, float row) {
+		return getNodeFromPixels(col, row);
+	}
+	
 	Node getStartTempNode {
 		list<Node> list_nodes <- list(nodesLUT.values);
 		return list_nodes[0];
+	}
+	
+	point createHomeNodes(float xoffset, float yoffset) {
+		matrix homedata <- matrix([
+			['X','X','+','X','X'],
+			['X','X','.','X','X'],
+         	['+','X','.','X','+'],
+         	['+','.','+','.','+'],
+         	['+','X','X','X','+']]);
+		do createNodeTable(homedata, xoffset, yoffset);
+		do connectHorizontally(homedata, xoffset, yoffset);
+		do connectVertically(homedata, xoffset, yoffset);
+		homekey <- {xoffset + 2, yoffset};
+		return homekey;
+	}
+	
+	action connectHomeNodes(point hk, point otherkey, int direction) {
+		nodesLUT[hk].neighbors[direction] <- nodesLUT[otherkey];
+		nodesLUT[otherkey].neighbors[direction * -1] <- nodesLUT[hk];
 	}
 }
 
@@ -458,6 +899,10 @@ experiment play autorun: false{
 			species PelletGroup;
 			species PacMan;
 			species Ghost;
+			species Blinky;
+			species Pinky;
+			species Inky;
+			species Clyde;
 			
 			event #arrow_up {
 				ask PacMan {

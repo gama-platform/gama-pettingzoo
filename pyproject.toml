@@ -11,6 +11,7 @@ authors = [
 ]
 description = "A PettingZoo environment for multi-agent reinforcement learning with GAMA agent-based simulations"
 readme = "README.md"
+license = { file="LICENSE" }
 requires-python = ">=3.8"
 keywords = ["multi-agent", "reinforcement-learning", "pettingzoo", "gama", "agent-based-modeling", "simulation", "marl"]
 classifiers = [

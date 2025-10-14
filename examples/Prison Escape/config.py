@@ -1,34 +1,34 @@
 """
-Fichier de configuration pour l'entraînement Prison Escape
-Contient tous les paramètres configurables pour l'entraînement et l'évaluation
+Configuration file for Prison Escape training
+Contains all configurable parameters for training and evaluation
 """
 
 import os
 from pathlib import Path
 
 class PrisonEscapeConfig:
-    """Configuration centralisée pour l'entraînement Prison Escape"""
+    """Centralized configuration for Prison Escape training"""
     
-    # Chemins de fichiers
+    # File paths
     EXPERIMENT_PATH = str(Path(__file__).parents[0] / "controler.gaml")
     EXPERIMENT_NAME = "main"
     SAVE_DIR = "./trained_models"
     LOGS_DIR = "./training_logs"
     
-    # Configuration GAMA
+    # GAMA configuration
     GAMA_IP = "localhost"
     GAMA_PORT = 1001
     
-    # Paramètres d'entraînement
+    # Training parameters
     NUM_EPISODES = 1000
     MAX_STEPS_PER_EPISODE = 200
-    SAVE_INTERVAL = 100  # Sauvegarde tous les N épisodes
-    LOG_INTERVAL = 10    # Affichage des stats tous les N épisodes
+    SAVE_INTERVAL = 100  # Save every N episodes
+    LOG_INTERVAL = 10    # Display stats every N episodes
     
-    # Configuration des agents
+    # Agent configuration
     AGENTS = ["prisoner", "guard"]
     
-    # Espaces d'observation et d'action
+    # Observation and action spaces
     GRID_SIZE = 7
     NUM_POSITIONS = GRID_SIZE * GRID_SIZE  # 49 positions possibles
     NUM_ACTIONS = 4  # gauche, droite, haut, bas
@@ -42,7 +42,7 @@ class PrisonEscapeConfig:
         "gamma": 0.99,
         "clip_range": 0.2,
         "ent_coef": 0.01,          # Coefficient d'entropie pour encourager l'exploration
-        "vf_coef": 0.5,            # Coefficient de la fonction de valeur
+        "vf_coef": 0.5,            # Value function coefficient
         "max_grad_norm": 0.5,      # Clipping du gradient
         "gae_lambda": 0.95         # GAE lambda
     }

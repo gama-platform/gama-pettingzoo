@@ -46,13 +46,20 @@ global {
 		prisoner_x <- prs.my_cell.grid_x;
 		
 		create PetzAgent {
-			agents <- copy(possible_agents);
-			possible_agents <- copy(possible_agents);
+			agents <- copy(myself.possible_agents);
+			possible_agents <- copy(myself.possible_agents);
 			observation_spaces <- agents as_map (each::["type"::"MultiDiscrete", "nvec"::list_with(3, gs * gs)]);
 			action_spaces <- agents as_map (each::["type"::"Discrete", "n"::4]);
-			
-			write "observation spaces: " + observation_spaces;
 		}
+		
+//		create PetzAgent;
+//		PetzAgent[0].agents <- copy(possible_agents);
+//		PetzAgent[0].possible_agents <- copy(possible_agents);
+//		PetzAgent[0].observation_spaces <- agents as_map (each::["type"::"MultiDiscrete", "nvec"::list_with(3, gs * gs)]);
+//		PetzAgent[0].action_spaces <- agents as_map (each::["type"::"Discrete", "n"::4]);
+		
+		write "observation spaces: " + PetzAgent[0].observation_spaces;
+		write "action spaces: " + PetzAgent[0].action_spaces;
 
 		loop a over: PetzAgent[0].agents {
 			PetzAgent[0].observations << a::[prisoner_x + gs * prisoner_y, guard_x + gs * guard_y, escape_x + gs * escape_y];
@@ -181,6 +188,11 @@ species PetzAgent {
 //---------------------------------------------------------------------
 
 experiment main {
+	init {
+		write "observation spaces: " + PetzAgent[0].observation_spaces;
+		write "action spaces: " + PetzAgent[0].action_spaces;
+	}
+	
 //	reflex snapshot // take a snapshot of the current distribution model instance
 //	{
 //		write("SNAPPING___________________________________ " + cycle);
@@ -190,6 +202,7 @@ experiment main {
 //			
 //		}
 //	}
+
 	output {
 		display "Visualisation" type: 2d{
 			graphics "vis" {
