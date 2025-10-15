@@ -54,7 +54,7 @@ The `GamaMultiAgent` is a GAMA agent required in the model to enable interaction
 Structure of the agent:
 
 ```gaml
-species GamaMultiAgent skills:[PettingZooLink] {
+species GamaMultiAgent {
     map<string, unknown> action_spaces;
     map<string, unknown> observation_spaces;
     list<string> agents_list;
@@ -87,7 +87,7 @@ species GamaMultiAgent skills:[PettingZooLink] {
    Make sure you have added the species `GamaMultiAgent` described above to your model:
 
    ```gaml
-   species GamaMultiAgent skills:[PettingZooLink];
+   species GamaMultiAgent;
    ```
 
    Set up the `action_spaces` and `observation_spaces`:
