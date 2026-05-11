@@ -1,11 +1,13 @@
 from typing import Any
 import traceback
 import json
+import numpy as np
 
 from gama_gymnasium import SpaceConverter, GamaEnvironmentError
 
 from pettingzoo import ParallelEnv
 from gymnasium.utils import seeding
+from gymnasium.spaces import Box, Discrete
 
 from .gama_client_wrapper import GamaClientWrapperPtZ
 
@@ -59,21 +61,20 @@ class GamaParallelEnv(ParallelEnv):
         # Pre-load spaces once for all agents (Optimization)
         self._prime_space_caches()
 
-        def _prime_space_caches(self):
-            """Fetch GAMA space definitions once and build Gymnasium cache."""
-            from gama_gymnasium import SpaceConverter
-            converter = SpaceConverter()
+    def _prime_space_caches(self):
+        """Fetch GAMA space definitions once and build Gymnasium cache."""
+        converter = SpaceConverter()
 
-            obs_raw = self.gama_client.get_observation_spaces(self.experiment_id)
-            act_raw = self.gama_client.get_action_spaces(self.experiment_id)
-            self._obs_spaces_raw = obs_raw
-            self._act_spaces_raw = act_raw
+        obs_raw = self.gama_client.get_observation_spaces(self.experiment_id)
+        act_raw = self.gama_client.get_action_spaces(self.experiment_id)
+        self._obs_spaces_raw = obs_raw
+        self._act_spaces_raw = act_raw
 
-            for agent in self.possible_agents:
-                if agent in obs_raw:
-                    self._obs_space_cache[agent] = converter.map_to_space(obs_raw[agent])
-                if agent in act_raw:
-                    self._act_space_cache[agent] = converter.map_to_space(act_raw[agent])
+        for agent in self.possible_agents:
+            if agent in obs_raw:
+                self._obs_space_cache[agent] = converter.map_to_space(obs_raw[agent])
+            if agent in act_raw:
+                self._act_space_cache[agent] = converter.map_to_space(act_raw[agent])
 
                 
     def _seed(self, seed=None):
@@ -82,7 +83,6 @@ class GamaParallelEnv(ParallelEnv):
     def observation_space(self, agent):
         """Return cached observation space (no GAMA round-trip)."""
         if agent not in self._obs_space_cache:
-            from gama_gymnasium import SpaceConverter
             obs_raw = self.gama_client.get_observation_spaces(self.experiment_id)
             self._obs_space_cache[agent] = SpaceConverter().map_to_space(obs_raw[agent])
         return self._obs_space_cache[agent]
@@ -90,7 +90,6 @@ class GamaParallelEnv(ParallelEnv):
     def action_space(self, agent):
         """Return cached action space (no GAMA round-trip)."""
         if agent not in self._act_space_cache:
-            from gama_gymnasium import SpaceConverter
             act_raw = self.gama_client.get_action_spaces(self.experiment_id)
             self._act_space_cache[agent] = SpaceConverter().map_to_space(act_raw[agent])
         return self._act_space_cache[agent]
@@ -122,7 +121,7 @@ class GamaParallelEnv(ParallelEnv):
         
         return observations, infos
     
-    def step(self, actions):
+    def step(self, actions, nb_steps: int = 1):
         # Optimization: serialize actions
         gama_actions = {}
         for agent, action in actions.items():
@@ -130,7 +129,7 @@ class GamaParallelEnv(ParallelEnv):
         
         # Optimization: compact JSON (no spaces after separators)
         actions_json = json.dumps(gama_actions, separators=(',', ':'))
-        step_data = self.gama_client.execute_step(self.experiment_id, actions_json)
+        step_data = self.gama_client.execute_step(self.experiment_id, actions_json, nb_steps=nb_steps)
         
         # Optimization: deserialize observations
         observations = {}
@@ -182,14 +181,6 @@ class GamaParallelEnv(ParallelEnv):
 
     def render(self):
         pass
-    
-    def observation_space(self, agent):
-        observation_spaces_data = self.gama_client.get_observation_spaces(self.experiment_id)
-        return self.space_converter.map_to_space(observation_spaces_data[agent])
-
-    def action_space(self, agent):
-        action_spaces_data = self.gama_client.get_action_spaces(self.experiment_id)
-        return self.space_converter.map_to_space(action_spaces_data[agent])
 
     def close(self):
         if hasattr(self, 'gama_client') and self.gama_client:
