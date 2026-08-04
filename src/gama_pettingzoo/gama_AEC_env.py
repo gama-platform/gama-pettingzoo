@@ -137,6 +137,12 @@ class GamaAECEnv(GamaEnvBase, AECEnv):
             self._advance_simulation()
             self._staged_actions.clear()
 
+        # Published after EVERY turn, not just at the round boundary. A turn-based game can
+        # end on any player's move — waiting for the round to close would let the loser play
+        # into a finished game and delay the win by a turn. Rewards and terminations updating
+        # per turn is also what PettingZoo's AEC semantics call for.
+        self._publish()
+
         self.agent_selection = self._agent_selector.next()
         self._accumulate_rewards()
 
@@ -160,6 +166,8 @@ class GamaAECEnv(GamaEnvBase, AECEnv):
             if response["type"] != MessageTypes.CommandExecutedSuccessfully.value:
                 raise GamaEnvironmentError(f"Failed to advance the simulation: {response}")
 
+    def _publish(self):
+        """Snapshot the transition and read it back. Runs after every turn."""
         self.gama_client._execute_expression(self.experiment_id, "PetzAgent[0].publish()")
         data = self.gama_client._execute_expression(self.experiment_id, "PetzAgent[0].data")
 
