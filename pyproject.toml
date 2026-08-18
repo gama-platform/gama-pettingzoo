@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gama-pettingzoo"
-version = "0.1.0"
+version = "1.0.0"
 authors = [
   { name="Félix Savarit", email="savarit.felix@gmail.com" },
   { name="Baptiste Lesquoy", email="baptiste.lesquoy@ird.fr" },

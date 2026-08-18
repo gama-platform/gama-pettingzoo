@@ -22,10 +22,12 @@ import json
 import os
 import random
 import sys
+import time
 from collections import defaultdict
 
 import nest_asyncio
 import numpy as np
+from importlib.metadata import version, PackageNotFoundError
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
@@ -36,6 +38,25 @@ Q_PATH = os.path.join(os.path.dirname(__file__), "tictactoe_q.json")
 
 LINES = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6),
          (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+
+
+
+def _pkg_version(name):
+    """gama_client n'expose pas de __version__ (son module racine est vide) : la version ne se
+    lit que dans les metadonnees du paquet installe."""
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return "absent"
+
+
+def log_versions(port):
+    print(f"gama_client {_pkg_version('gama_client')} | "
+          f"gama_pettingzoo {_pkg_version('gama_pettingzoo')} | "
+          f"pettingzoo {_pkg_version('pettingzoo')}", flush=True)
+    # Le port est affiche ici parce que le defaut du script (6868) n'est pas forcement celui
+    # du serveur lance : une erreur de connexion ressemble alors a une incompatibilite.
+    print(f"GAMA attendu sur le port {port}", flush=True)
 
 
 def make_env(port: int, render: bool = False) -> GamaAECEnv:
@@ -180,6 +201,7 @@ def train(args):
     env = make_env(args.port)
     rng = random.Random(args.seed)
     q = QTable()
+    t0 = time.time()
     try:
         env.reset()
         for game in range(args.games):
@@ -203,6 +225,12 @@ def train(args):
                 action = q.choose(obs, epsilon, rng)
                 pending[agent] = (state_key(obs), action)
                 env.step(action)
+
+            done = game + 1
+            if done % args.progress_every == 0 and done % args.eval_every != 0:
+                rate = done / max(time.time() - t0, 1e-9)
+                print(f"[game {done:6d}] {rate:5.1f} parties/s | etats={len(q.q):5d} | "
+                      f"reste ~{(args.games - done) / rate / 60:4.1f} min", flush=True)
 
             if (game + 1) % args.eval_every == 0:
                 vs_rand = evaluate(env, q, random_move, args.eval_games, rng)
@@ -321,10 +349,14 @@ def main():
     p.add_argument("--lr", type=float, default=0.2)
     p.add_argument("--gamma", type=float, default=0.95)
     p.add_argument("--eval-every", type=int, default=1000)
+    p.add_argument("--progress-every", type=int, default=200,
+                   help="ligne de progression entre deux evaluations (0 pour desactiver)")
     p.add_argument("--eval-games", type=int, default=50)
     p.add_argument("--check", action="store_true", help="compare against pettingzoo")
     p.add_argument("--play", action="store_true", help="watch one game (use with the GUI)")
     args = p.parse_args()
+
+    log_versions(args.port)
 
     if args.check:
         args.games = min(args.games, 200)
