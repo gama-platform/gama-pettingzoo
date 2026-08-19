@@ -20,7 +20,25 @@ pip install gama-pettingzoo
 ### Prerequisites
 
 - **GAMA Platform**: Install GAMA from [gama-platform.org](https://gama-platform.org/download)
-- **Python 3.8+** with required dependencies
+- **Python 3.10 – 3.12** (see the compatibility note below)
+
+> **⚠️ Supported Python versions: 3.10 to 3.12.**
+>
+> The upper bound comes from PettingZoo itself, not from this library: PettingZoo 1.25.0
+> declares `requires-python = ">=3.9,<3.13"`, so **Python 3.13 and above cannot work** —
+> installing on 3.13+ or 3.14 fails or leaves you with a broken dependency set.
+>
+> The lower bound comes from the dependency chain: `gama-client` (≥2.0.0), `gymnasium` and
+> `torch` all require Python ≥ 3.10, and recent NumPy (≥2.4) requires ≥ 3.11.
+>
+> **Tested on Python 3.11** with gama-client 2.0.1, PettingZoo 1.25.0, gymnasium 1.2.3.
+>
+> | package | constraint |
+> |---|---|
+> | pettingzoo 1.25.0 | `>=3.9,<3.13` ← sets the ceiling |
+> | gymnasium 1.2.3 | `>=3.10` |
+> | gama-client 2.0.1 | `>=3.10` |
+> | numpy 2.4 | `>=3.11` |
 
 ```bash
 pip install pettingzoo gama-gymnasium numpy

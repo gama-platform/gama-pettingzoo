@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gama-pettingzoo"
-version = "0.1.0"
+version = "1.0.0"
 authors = [
   { name="Félix Savarit", email="savarit.felix@gmail.com" },
   { name="Baptiste Lesquoy", email="baptiste.lesquoy@ird.fr" },
@@ -13,7 +13,10 @@ authors = [
 description = "A PettingZoo environment for multi-agent reinforcement learning with GAMA agent-based simulations"
 readme = "README.md"
 license = { file="LICENSE" }
-requires-python = ">=3.8"
+# Plancher : gama-client, gymnasium et torch exigent 3.10. Plafond : pettingzoo declare
+# <3.13, donc 3.13+ et 3.14 sont hors jeu. Sans cette borne, pip installe sur un Python
+# incompatible et l'echec ne survient qu'a l'execution, loin de sa cause.
+requires-python = ">=3.10,<3.13"
 keywords = ["multi-agent", "reinforcement-learning", "pettingzoo", "gama", "agent-based-modeling", "simulation", "marl"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -22,8 +25,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -31,7 +32,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pettingzoo>=1.22.0",
+    "pettingzoo>=1.25.0",
     "gama_gymnasium>=0.1.0",
     "numpy>=1.21.0",
 ]
