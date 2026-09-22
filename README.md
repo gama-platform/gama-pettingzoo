@@ -2,6 +2,7 @@
 
 [![Python Package](https://img.shields.io/pypi/v/gama-pettingzoo)](https://pypi.org/project/gama-pettingzoo/)
 [![License](https://img.shields.io/github/license/gama-platform/gama-pettingzoo)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22888219.svg)](https://doi.org/10.5281/zenodo.22888219)
 
 **GAMA-PettingZoo** is a generic [PettingZoo](https://pettingzoo.farama.org/) environment that enables the integration of simulations from the [GAMA](https://gama-platform.org/) modeling platform with multi-agent reinforcement learning algorithms.
 
